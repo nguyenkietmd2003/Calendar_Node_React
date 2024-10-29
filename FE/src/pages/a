@@ -1,0 +1,66 @@
+<div className="form-input">
+  <label className="title-input">
+    Tiêu đề
+    <input
+      type="text"
+      name="title"
+      value="{formData.title}"
+      onChange="{handleInputChange}"
+      required
+    />
+  </label>
+
+  <div className="time-input">
+    <label className="label"> Thời gian </label>
+    <div className="time-range">
+      Từ
+      <input
+        type="time"
+        name="startTime"
+        value="{formData.startTime}"
+        onChange="{handleInputChange}"
+        required
+      />
+      <span>-</span>
+      <input
+        type="time"
+        name="endTime"
+        value="{formData.endTime}"
+        onChange="{handleInputChange}"
+        required
+      />
+    </div>
+  </div>
+
+  <div className="importance-level">
+    <label>Mức độ quan trọng</label>
+    <div className="importance-options">
+      <label>
+        <input type="radio" name="importance" value="high"
+        checked={formData.importance === 'high'} onChange={handleInputChange} />
+        <span className="high">High</span>
+      </label>
+      <label>
+        <input type="radio" name="importance" value="medium"
+        checked={formData.importance === 'medium'} onChange={handleInputChange}
+        />
+        <span className="medium">Medium</span>
+      </label>
+      <label>
+        <input type="radio" name="importance" value="low"
+        checked={formData.importance === 'low'} onChange={handleInputChange} />
+        <span className="low">Low</span>
+      </label>
+    </div>
+  </div>
+
+  <label className="notification-checkbox">
+    <input
+      type="checkbox"
+      name="notify"
+      checked="{formData.notify}"
+      onChange="{handleInputChange}"
+    />
+    Nhận thông báo khi gần đến
+  </label>
+</div>

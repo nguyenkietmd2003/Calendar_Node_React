@@ -1,0 +1,179 @@
+.schedule {
+  background-color: #28a745;
+  color: #fff;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 1em;
+  margin-top: 5px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  height: 30px;
+}
+/* Notification Dropdown */
+.notification-button {
+  position: relative;
+}
+
+.notification-dropdown {
+  position: fixed;
+  width: 1000px;
+  height: 500px;
+  background-color: rgb(224, 224, 236);
+  top: 120px;
+  left: auto;
+  right: 0;
+  z-index: 1000;
+}
+
+/* Schedule */
+
+/* Form Overlay */
+.form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Close Button */
+.close-form {
+  width: 100%;
+  height: 54px;
+  background-color: #cdcccc;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  text-align: right;
+  padding-top: 10px;
+  margin-bottom: 48px;
+  color: #333;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+/* Schedule Form */
+.schedule-form {
+  background: #fff;
+  height: 618px;
+  width: 520px;
+  max-width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-input {
+  padding-left: 32px;
+  padding-right: 43px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-input label {
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* Title Input */
+.title-input {
+  font-size: 25px;
+}
+.title-input input {
+  border: 1px solid black;
+  border-radius: 8px;
+  height: 80px;
+  padding: 0 10px;
+  font-size: 16px;
+  margin-top: 5px;
+  width: 445px;
+}
+
+/* Time Range */
+.time-input {
+  margin-top: 26p x;
+}
+.time-input label {
+  font-size: 25px;
+}
+.time-range {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  font-size: 25px;
+}
+
+.time-range input[type="text"] {
+  margin-left: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  height: 80px;
+  width: 100px;
+  padding: 0 5px;
+  font-size: 16px;
+  width: 100px;
+}
+
+.time-range span {
+  margin: 0 10px;
+  font-size: 40px;
+}
+
+/* Importance Level */
+.importance-level {
+  margin-top: 15px;
+}
+
+.high {
+  color: #ff5e5e;
+}
+
+.medium {
+  color: #f8c548;
+}
+
+.low {
+  color: #4caf50;
+}
+
+/* Submit Button */
+.button-form {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+/* Additional Button Styles */
+.month-button {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+  font-size: 2.5em;
+  background: none;
+  border: none;
+  color: black;
+  cursor: pointer;
+}
+
+.previous {
+  margin-left: 100px;
+  margin-right: 50px;
+}
+
+.next {
+  margin-left: 50px;
+}
