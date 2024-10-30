@@ -5,6 +5,25 @@ import { Op } from "sequelize";
 
 let model = initModels(sequelize);
 
+//
+export const getScheduleByIDService = async (id) => {
+  try {
+    const checkUser = await model.User.findOne({
+      where: { id },
+    });
+    if (!checkUser) return { message: "User not found" };
+    const schedule = await model.WorkSchedule.findAll({
+      where: { user_id: id },
+    });
+    if (schedule && schedule.length > 0) {
+      return { message: schedule };
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+//
 export const getAllScheduleService = async () => {
   try {
     const data = await model.WorkSchedule.findAll();
@@ -19,7 +38,6 @@ export const createScheduleService = async (data) => {
   const {
     user_id,
     title,
-    description,
     start_time,
     end_time,
     priority,
@@ -27,12 +45,16 @@ export const createScheduleService = async (data) => {
     is_canceled,
   } = data;
 
+  // Kiểm tra thời gian bắt đầu và kết thúc
+  if (new Date(start_time) >= new Date(end_time)) {
+    return { message: "Start time must be before end time" };
+  }
+
   try {
     // 1. Kiểm tra lịch đã tồn tại có trùng thời gian không
     const conflictingSchedules = await model.WorkSchedule.findAll({
       where: {
         user_id: user_id,
-        // Kiểm tra xem khoảng thời gian có trùng với lịch khác không
         [Op.or]: [
           {
             start_time: {
@@ -62,7 +84,7 @@ export const createScheduleService = async (data) => {
     const newSchedule = await model.WorkSchedule.create({
       user_id,
       title,
-      description,
+      description: "",
       start_time,
       end_time,
       priority,
@@ -79,6 +101,13 @@ export const createScheduleService = async (data) => {
 };
 
 export const updateScheduleService = async (id, data) => {
+  const { user_id, start_time, end_time } = data;
+
+  // Kiểm tra thời gian bắt đầu và kết thúc
+  if (new Date(start_time) >= new Date(end_time)) {
+    return { message: "Start time must be before end time" };
+  }
+
   try {
     // 1. Tìm lịch cần cập nhật
     const checkSchedule = await model.WorkSchedule.findOne({

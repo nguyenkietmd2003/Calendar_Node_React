@@ -13,6 +13,8 @@ export default function initModels(sequelize) {
   const User = _User.init(sequelize, DataTypes);
   const WorkSchedule = _WorkSchedule.init(sequelize, DataTypes);
 
+  Booking.belongsTo(User, { as: "user", foreignKey: "user_id"});
+  User.hasMany(Booking, { as: "Bookings", foreignKey: "user_id"});
   Notification.belongsTo(User, { as: "user", foreignKey: "user_id"});
   User.hasMany(Notification, { as: "Notifications", foreignKey: "user_id"});
   PublicLink.belongsTo(User, { as: "user", foreignKey: "user_id"});

@@ -1,18 +1,51 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./loginPage.css";
+import { useContext, useState } from "react";
+import { AuthContext } from "../../context/wrapContext";
+import { loginAPI } from "./../../util/api";
+
 const LoginPage = () => {
-  //
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { setAuth } = useContext(AuthContext);
+  const navigate = useNavigate();
+
   const focusPlaceholder = (inputId) => {
-    document.querySelector(inputId).focus();
+    document.querySelector(`#${inputId}`).focus();
   };
 
-  //
+  const login = async () => {
+    try {
+      const user = await loginAPI(email, password);
+      if (user.status === 200) {
+        setAuth({
+          isAuthenticated: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          },
+        });
+
+        localStorage.setItem("info", JSON.stringify({ data: user.data }));
+        navigate("/calendar");
+      }
+    } catch (error) {
+      console.log("Error logging in:", error);
+    }
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    login();
+  };
+
   return (
     <div className="login-container">
-      <span className="h-12  text-[40px] font-bol mb-[41px] block text-center">
+      <span className="h-12 text-[40px] font-bol mb-[41px] block text-center">
         Login
       </span>
-      <form action="" className="flex flex-col items-center">
+      <form onSubmit={handleSubmit} className="flex flex-col items-center">
         <div
           className="input-container mb-6"
           onClick={() => focusPlaceholder("email")}
@@ -22,6 +55,8 @@ const LoginPage = () => {
             id="email"
             placeholder=""
             className="input-field"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <label htmlFor="email" className="placeholder">
             Email
@@ -36,6 +71,8 @@ const LoginPage = () => {
             id="password"
             placeholder=""
             className="input-field"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
           <label htmlFor="password" className="placeholder">
             Password
@@ -51,4 +88,5 @@ const LoginPage = () => {
     </div>
   );
 };
+
 export default LoginPage;

@@ -4,11 +4,19 @@ const { Model, Sequelize } = _sequelize;
 export default class Booking extends Model {
   static init(sequelize, DataTypes) {
   return super.init({
-    id: {
+    id_booking: {
       autoIncrement: true,
       type: DataTypes.INTEGER,
       allowNull: false,
       primaryKey: true
+    },
+    user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'User',
+        key: 'id'
+      }
     },
     work_schedule_id: {
       type: DataTypes.INTEGER,
@@ -20,11 +28,11 @@ export default class Booking extends Model {
     },
     guest_name: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: true
     },
     guest_email: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: true
     },
     status: {
       type: DataTypes.ENUM('pending','approved','rejected'),
@@ -41,7 +49,7 @@ export default class Booking extends Model {
         unique: true,
         using: "BTREE",
         fields: [
-          { name: "id" },
+          { name: "id_booking" },
         ]
       },
       {
@@ -49,6 +57,13 @@ export default class Booking extends Model {
         using: "BTREE",
         fields: [
           { name: "work_schedule_id" },
+        ]
+      },
+      {
+        name: "user_id",
+        using: "BTREE",
+        fields: [
+          { name: "user_id" },
         ]
       },
     ]

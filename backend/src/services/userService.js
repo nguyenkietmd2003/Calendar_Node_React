@@ -10,9 +10,13 @@ export const loginService = async (email, password) => {
     });
     if (checkEmail) {
       if (checkEmail.password === password) {
-        const user = { name: checkEmail.name, email: checkEmail.email };
+        const user = {
+          id: checkEmail.id,
+          name: checkEmail.name,
+          email: checkEmail.email,
+        };
         const token = createToken(user);
-        return { message: token };
+        return { token: token, user: user };
       }
     }
     throw new Error("Couldn't find user");

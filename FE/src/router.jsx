@@ -13,11 +13,11 @@ export const router = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
-      { index: true, element: <HomePage /> },
-      { path: "/login", element: <LoginPage /> },
+      { index: true, element: <LoginPage /> },
       { path: "/register", element: <RegisterPage /> },
     ],
   },
+  { path: "/calendar", element: <HomePage /> },
   // Route lỗi
   {
     path: "*",

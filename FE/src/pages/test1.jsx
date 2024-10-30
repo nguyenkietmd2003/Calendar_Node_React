@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./Test1.css";
 import "./Test2.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -7,6 +7,8 @@ import {
   faCalendarAlt,
   faCalendar,
 } from "@fortawesome/free-solid-svg-icons";
+import axios from "axios";
+import { getSchedule } from "../util/api";
 
 const Test2 = () => {
   const [schedules, setSchedules] = useState({});
@@ -30,6 +32,48 @@ const Test2 = () => {
 
   // State cho chế độ hiển thị
   const [isAppointmentMode, setIsAppointmentMode] = useState(false);
+
+  //
+
+  const [apiSchedules, setApiSchedules] = useState([]);
+
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        const response = await getSchedule();
+        const data = await response.json();
+        setApiSchedules(data.message); // Lưu dữ liệu vào state
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu từ API:", error);
+      }
+    };
+
+    fetchSchedules();
+  }, []);
+
+  const renderSchedules1 = (date) => {
+    const dateString = date.toISOString().split("T")[0];
+    const daySchedules = apiSchedules.filter((schedule) =>
+      schedule.start_time.startsWith(dateString)
+    );
+    const displaySchedules = daySchedules.slice(0, 2);
+    const remainingCount = daySchedules.length - 2;
+
+    return (
+      <div>
+        {displaySchedules.map((schedule, index) => (
+          <div className="schedule" key={index}>
+            {schedule.title}
+          </div>
+        ))}
+        {remainingCount > 0 && (
+          <div className="schedule">{`Còn ${remainingCount} lịch khác`}</div>
+        )}
+      </div>
+    );
+  };
+
+  //
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
@@ -173,7 +217,7 @@ const Test2 = () => {
           &#62;
         </button>
         <button
-          className="appointment"
+          className="appointment border w-[110px] h-[30px] rounded-2xl mr-[55px]"
           onClick={() => setIsAppointmentMode(true)}
         >
           Lịch Hẹn

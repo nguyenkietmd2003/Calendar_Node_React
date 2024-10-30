@@ -2,6 +2,7 @@ import {
   createScheduleService,
   deleteScheduleService,
   getAllScheduleService,
+  getScheduleByIDService,
   updateScheduleService,
 } from "../services/scheduleService.js";
 
@@ -13,12 +14,20 @@ export const getAllSchedule = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+export const getScheduleByID = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await getScheduleByIDService(id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 
 export const createSchedule = async (req, res) => {
   const {
     user_id,
     title,
-    description,
     start_time,
     end_time,
     priority,
@@ -28,7 +37,6 @@ export const createSchedule = async (req, res) => {
   const data = {
     user_id,
     title,
-    description,
     start_time,
     end_time,
     priority,
@@ -37,6 +45,9 @@ export const createSchedule = async (req, res) => {
   };
   try {
     const result = await createScheduleService(data);
+    if (result.message === "Schedule conflicts with existing schedules") {
+      return res.status(400).json(result);
+    }
     return res.status(201).json(result);
   } catch (error) {
     return res.status(500).json({ message: error.message });

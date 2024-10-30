@@ -11,9 +11,11 @@
   text-overflow: ellipsis;
   height: 30px;
 }
+
 /* Notification Dropdown */
 .notification-button {
   position: relative;
+  margin-right: 55px;
 }
 
 .notification-dropdown {
@@ -26,8 +28,6 @@
   right: 0;
   z-index: 1000;
 }
-
-/* Schedule */
 
 /* Form Overlay */
 .form-overlay {
@@ -86,6 +86,7 @@
 .title-input {
   font-size: 25px;
 }
+
 .title-input input {
   border: 1px solid black;
   border-radius: 8px;
@@ -98,11 +99,13 @@
 
 /* Time Range */
 .time-input {
-  margin-top: 26p x;
+  margin-top: 26px; /* Fixed typo from '26p x' to '26px' */
 }
+
 .time-input label {
   font-size: 25px;
 }
+
 .time-range {
   display: flex;
   align-items: center;
@@ -118,7 +121,6 @@
   width: 100px;
   padding: 0 5px;
   font-size: 16px;
-  width: 100px;
 }
 
 .time-range span {
@@ -170,10 +172,11 @@
 }
 
 .previous {
-  margin-left: 100px;
+  margin-left: 366px;
   margin-right: 50px;
 }
 
 .next {
   margin-left: 50px;
+  margin-right: 105px;
 }
