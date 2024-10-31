@@ -12,6 +12,7 @@ import {
 const HomePage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [endTimeOptions, setEndTimeOptions] = useState([]);
   const [formData, setFormData] = useState({
     title: "",
     startTime: "",
@@ -29,7 +30,6 @@ const HomePage = () => {
   const notifications = [
     "Thông báo 1: Bạn có một cuộc họp lúc 10h.",
     "Thông báo 2: Đừng quên nộp báo cáo vào cuối ngày.",
-    "Thông báo 3: Lịch trình đã được cập nhật.",
   ];
 
   // State cho chế độ hiển thị
@@ -45,7 +45,10 @@ const HomePage = () => {
         const getInfo = localStorage.getItem("info");
         const user = JSON.parse(getInfo);
         const response = await getScheduleById(user.data.user.id);
-        setApiSchedules(response.message); // Lưu dữ liệu vào state
+        // Kiểm tra response.message trước khi thiết lập state
+        setApiSchedules(
+          Array.isArray(response.message) ? response.message : []
+        );
         console.log(response.message);
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu từ API:", error);
@@ -71,25 +74,32 @@ const HomePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const date = convertDate(selectedDate);
+    const startTime = convertTime(formData.startTime);
+    const endTime = convertTime(formData.endTime);
+    const user_id = JSON.parse(localStorage.getItem("info")).data.user.id;
     const newSchedule = {
-      user_id: JSON.parse(localStorage.getItem("info")).data.user.id, // Lấy user_id từ localStorage
+      user_id: user_id, // Lấy user_id từ localStorage
       title: formData.title,
-      start_time: formData.startTime,
-      end_time: formData.endTime,
-      priority: formData.priority,
+      start_time: `${date}T${startTime}`,
+      end_time: `${date}T${endTime}`,
+      priority: formData.priority || "low",
       notification_time: formData.notification_time,
     };
-
     console.log(newSchedule);
     try {
       const result = await createSchedule(newSchedule);
-      console.log("Data truoc khi call API Create New Schedule", newSchedule);
+      console.log("Data trước khi call API Create New Schedule", newSchedule);
       console.log(result);
-      if (result.status === 201) {
-        setApiSchedules((prevSchedules) => [
-          ...prevSchedules,
-          { ...newSchedule },
-        ]);
+      if (result.status === 200) {
+        setApiSchedules((prevSchedules) => {
+          if (Array.isArray(prevSchedules)) {
+            return [...prevSchedules, { ...newSchedule }];
+          } else {
+            console.error("prevSchedules is not an array", prevSchedules);
+            return [{ ...newSchedule }]; // Hoặc một giá trị mặc định khác
+          }
+        });
         resetForm();
       } else {
         console.log("Error creating Schedule");
@@ -98,15 +108,9 @@ const HomePage = () => {
       console.error("Lỗi khi tạo lịch làm việc:", error);
     }
 
-    setFormData({
-      startTime: "",
-      endTime: "",
-      title: "",
-      priority: "",
-      notification_time: false,
-    });
     setIsFormVisible(false);
   };
+
   const resetForm = () => {
     setFormData({
       startTime: "",
@@ -119,13 +123,28 @@ const HomePage = () => {
   };
 
   const renderSchedules = (date) => {
-    const dateString = date.toLocaleDateString(); // Ngày hiện tại theo định dạng địa phương
+    // Ngày hiện tại theo định dạng địa phương
+    const dateString = date.toLocaleDateString();
+
+    // Kiểm tra xem apiSchedules có phải là một mảng không
+    if (!Array.isArray(apiSchedules)) {
+      return <div className=""></div>;
+    }
+
+    // Lọc lịch trình theo ngày
     const daySchedules = apiSchedules.filter((schedule) => {
       const scheduleDate = new Date(schedule.start_time).toLocaleDateString(); // Chuyển đổi ngày từ lịch trình
       return scheduleDate === dateString; // So sánh ngày
     });
+
+    // Kiểm tra nếu không có lịch trình nào trong ngày
+    if (daySchedules.length === 0) {
+      return <div className=""></div>;
+    }
+
+    // Chọn tối đa 2 lịch trình để hiển thị
     const displaySchedules = daySchedules.slice(0, 2);
-    const remainingCount = daySchedules.length - 2;
+    const remainingCount = daySchedules.length - displaySchedules.length; // Tính số lịch trình còn lại
 
     return (
       <div>
@@ -238,27 +257,40 @@ const HomePage = () => {
     setIsNotificationsVisible((prev) => !prev);
   };
   const handleEdit = (schedule) => {
-    // Điều hướng đến trang chỉnh sửa hoặc mở modal chỉnh sửa
-    console.log("Chỉnh sửa lịch trình:", schedule);
     setFormData({
       title: schedule.title,
-      startTime: schedule.start_time,
-      endTime: schedule.end_time,
+      startTime: "10:00 AM",
+      endTime: "11:00 PM",
+      priority: schedule.priority,
+      notification_time: schedule.notification_time,
+    });
+    console.log("Updated formData:", {
+      title: schedule.title,
+      startTime: "12:00 AM",
+      endTime: "11:00 PM",
       priority: schedule.priority,
       notification_time: schedule.notification_time,
     });
     setIsFormVisible(true);
     setIsModalVisible(false);
-    // Thêm logic để mở modal chỉnh sửa hoặc điều hướng đến trang chỉnh sửa
   };
 
   const handleDelete = async (id) => {
     try {
       const data = await deleteSchedule(id);
       console.log(data);
-      setApiSchedules((prevSchedules) =>
-        prevSchedules.filter((schedule) => schedule.id !== id)
-      );
+      if (data.status === 200) {
+        setApiSchedules((prevSchedules) => {
+          if (Array.isArray(prevSchedules)) {
+            return prevSchedules.filter((schedule) => schedule.id !== id);
+          } else {
+            console.error("prevSchedules is not an array", prevSchedules);
+            return []; // Hoặc một giá trị mặc định khác
+          }
+        });
+        setIsModalVisible(false);
+      }
+      console.log("error delete data", data);
     } catch (error) {
       console.log(error);
     }
@@ -271,6 +303,74 @@ const HomePage = () => {
   //
 
   //
+
+  const populateTimeOptions = () => {
+    const times = [];
+    for (let hour = 0; hour < 24; hour++) {
+      const period = hour < 12 ? "AM" : "PM";
+      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+      const minutes = ["00", "30"];
+
+      minutes.forEach((minute) => {
+        const timeOption = `${displayHour}:${minute} ${period}`;
+        times.push(timeOption);
+      });
+    }
+    return times;
+  };
+
+  const timeOptions = populateTimeOptions();
+
+  // Cập nhật tùy chọn giờ kết thúc dựa trên giờ bắt đầu
+  const updateEndTimeOptions = (selectedStartTime) => {
+    const startIndex = timeOptions.findIndex(
+      (time) => time === selectedStartTime
+    );
+
+    // Lọc các tùy chọn thời gian kết thúc có sẵn
+    const availableEndTimes = timeOptions.filter(
+      (time, index) => index > startIndex
+    );
+
+    setEndTimeOptions(availableEndTimes);
+
+    // Đặt lại endTime trong formData
+    setFormData((prevData) => ({
+      ...prevData,
+      endTime: "",
+    }));
+  };
+
+  const convertTime = (time12h) => {
+    const regex = /(\d{1,2}):(\d{2})\s?(AM|PM)/i;
+    const match = time12h.trim().match(regex);
+
+    if (match) {
+      let hours = parseInt(match[1], 10);
+      const minutes = match[2];
+      const period = match[3].toUpperCase();
+
+      if (period === "PM" && hours !== 12) {
+        hours += 12;
+      } else if (period === "AM" && hours === 12) {
+        hours = 0;
+      }
+
+      const time24h = `${hours.toString().padStart(2, "0")}:${minutes}:00`;
+      return time24h;
+    } else {
+      console.log("Loi Convert time");
+    }
+  };
+  const convertDate = (dateString) => {
+    const date = new Date(dateString);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
   return (
     <div className="calendar">
       <div className="header">
@@ -341,7 +441,6 @@ const HomePage = () => {
           </div>
         </div>
       )}
-
       {isFormVisible && (
         <div className="form-overlay">
           <form className="schedule-form" onSubmit={handleSubmit}>
@@ -360,25 +459,50 @@ const HomePage = () => {
                 />
               </label>
               <div className="time-input">
-                <label className="label"> Thời gian </label>
-                <div className="time-range">
-                  Từ
-                  <input
-                    type="text"
-                    name="startTime"
-                    value={formData.startTime}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <span>-</span>
-                  <input
-                    type="text"
-                    name="endTime"
-                    value={formData.endTime}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
+                <select
+                  id="startTime"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={(e) => {
+                    const selectedStartTime = e.target.value;
+                    setFormData((prevData) => ({
+                      ...prevData,
+                      startTime: selectedStartTime,
+                      endTime: "", // Reset endTime when startTime changes
+                    }));
+                    updateEndTimeOptions(selectedStartTime);
+                  }}
+                  required
+                >
+                  <option value="">-- Chọn giờ bắt đầu --</option>
+                  {timeOptions.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  id="endTime"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={(e) => {
+                    const selectedEndTime = e.target.value;
+                    setFormData((prevData) => ({
+                      ...prevData,
+                      endTime: selectedEndTime,
+                    }));
+                  }}
+                  required={!!formData.startTime}
+                  disabled={!formData.startTime}
+                >
+                  <option value="">-- Chọn giờ kết thúc --</option>
+                  {endTimeOptions.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="importance-level">
                 <label>Mức độ quan trọng</label>

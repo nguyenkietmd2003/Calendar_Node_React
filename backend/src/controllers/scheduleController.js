@@ -48,7 +48,7 @@ export const createSchedule = async (req, res) => {
     if (result.message === "Schedule conflicts with existing schedules") {
       return res.status(400).json(result);
     }
-    return res.status(201).json(result);
+    return res.status(201).json({ status: 200, data: result });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -58,7 +58,7 @@ export const updateSchedule = async (req, res) => {
   const data = req.body;
   try {
     const result = await updateScheduleService(id, data);
-    return res.status(200).json(result);
+    return res.status(200).json({ status: 200, data: result });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -67,7 +67,7 @@ export const deleteSchedule = async (req, res) => {
   const { id } = req.params;
   try {
     const result = await deleteScheduleService(id);
-    return res.status(200).json(result);
+    return res.status(200).json({ status: 200, data: result });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

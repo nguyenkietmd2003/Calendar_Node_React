@@ -1,7 +1,7 @@
 import { sequelize } from "../config/database.js";
 import crypto from "crypto";
-import initModels from "../models/init-models.js";
 import { Op } from "sequelize";
+import initModels from "../models/init-models.js";
 
 let model = initModels(sequelize);
 
@@ -33,7 +33,6 @@ export const getAllScheduleService = async () => {
     throw error;
   }
 };
-
 export const createScheduleService = async (data) => {
   const {
     user_id,
@@ -93,6 +92,19 @@ export const createScheduleService = async (data) => {
     });
 
     if (!newSchedule) return { message: "Cannot create new schedule" };
+
+    // 3. Thêm vào bảng Notification nếu notification_time = true
+    if (notification_time) {
+      const notificationTime = new Date(start_time);
+      notificationTime.setMinutes(notificationTime.getMinutes() - 5); // Trừ 5 phút từ start_time
+
+      await model.Notification.create({
+        work_schedule_id: newSchedule.id,
+        user_id,
+        notification_time: notificationTime,
+        message: `Reminder for your schedule: ${title}`,
+      });
+    }
 
     return { message: "New schedule created successfully", data: newSchedule };
   } catch (error) {
@@ -158,10 +170,45 @@ export const updateScheduleService = async (id, data) => {
 
 export const deleteScheduleService = async (id) => {
   try {
+    console.log(id);
+    // Kiểm tra xem lịch làm việc có tồn tại không
     const checkSchedule = await model.WorkSchedule.findOne({
-      where: { id },
+      where: { id: id },
     });
-    if (!checkSchedule) return { message: "schedule not found" };
+
+    if (!checkSchedule) {
+      return { message: "Schedule not found" };
+    } else {
+      console.log(checkSchedule.dataValues);
+    }
+
+    // Tìm tất cả các đặt chỗ liên quan đến lịch làm việc này
+    const bookings = await model.Booking.findOne({
+      where: { work_schedule_id: id },
+    });
+
+    const notification = await model.Notification.findOne({
+      where: {
+        work_schedule_id: id,
+      },
+    });
+
+    // Nếu không có đặt chỗ, hãy xóa lịch làm việc
+    if (!bookings && !notification) {
+      const deleteSchedule = await checkSchedule.destroy();
+      return { message: "Schedule deleted successfully", data: deleteSchedule };
+    }
+
+    // Nếu có đặt chỗ hoặc thông báo, xóa chúng trước
+    if (bookings) {
+      await bookings.destroy();
+    }
+
+    if (notification) {
+      await notification.destroy();
+    }
+
+    // Cuối cùng, xóa lịch làm việc
     const deleteSchedule = await checkSchedule.destroy();
     return { message: "Schedule deleted successfully", data: deleteSchedule };
   } catch (error) {
