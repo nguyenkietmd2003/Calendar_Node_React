@@ -18,13 +18,13 @@ export default class Booking extends Model {
         key: 'id'
       }
     },
-    work_schedule_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'WorkSchedule',
-        key: 'id'
-      }
+    start_time: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    end_time: {
+      type: DataTypes.DATE,
+      allowNull: true
     },
     guest_name: {
       type: DataTypes.STRING(255),
@@ -38,6 +38,10 @@ export default class Booking extends Model {
       type: DataTypes.ENUM('pending','approved','rejected'),
       allowNull: true,
       defaultValue: "pending"
+    },
+    content: {
+      type: DataTypes.STRING(255),
+      allowNull: true
     }
   }, {
     sequelize,
@@ -50,13 +54,6 @@ export default class Booking extends Model {
         using: "BTREE",
         fields: [
           { name: "id_booking" },
-        ]
-      },
-      {
-        name: "work_schedule_id",
-        using: "BTREE",
-        fields: [
-          { name: "work_schedule_id" },
         ]
       },
       {

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import "./loginPage.css";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/wrapContext";
 import { loginAPI } from "./../../util/api";
 
@@ -13,6 +13,22 @@ const LoginPage = () => {
   const focusPlaceholder = (inputId) => {
     document.querySelector(`#${inputId}`).focus();
   };
+  useEffect(() => {
+    // Kiểm tra localStorage khi component được khởi tạo
+    const storedUser = JSON.parse(localStorage.getItem("info"));
+    if (storedUser && storedUser.data) {
+      // Tự động thiết lập trạng thái đăng nhập và chuyển hướng đến /calendar
+      setAuth({
+        isAuthenticated: true,
+        user: {
+          id: storedUser.data.user.id,
+          email: storedUser.data.user.email,
+          name: storedUser.data.user.name,
+        },
+      });
+      navigate("/calendar");
+    }
+  }, []);
 
   const login = async () => {
     try {

@@ -1,8 +1,10 @@
+import { getScheduleShareLinkService } from "./../services/scheduleService.js";
 import {
   createScheduleService,
   deleteScheduleService,
   getAllScheduleService,
   getScheduleByIDService,
+  sharedScheduleService,
   updateScheduleService,
 } from "../services/scheduleService.js";
 
@@ -54,10 +56,11 @@ export const createSchedule = async (req, res) => {
   }
 };
 export const updateSchedule = async (req, res) => {
-  const { id } = req.params;
-  const data = req.body;
+  const { idSchedule } = req.params;
+  const { user_id, start_time, end_time, title } = req.body;
+  const data = { user_id, start_time, end_time, title };
   try {
-    const result = await updateScheduleService(id, data);
+    const result = await updateScheduleService(idSchedule, data);
     return res.status(200).json({ status: 200, data: result });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -68,6 +71,25 @@ export const deleteSchedule = async (req, res) => {
   try {
     const result = await deleteScheduleService(id);
     return res.status(200).json({ status: 200, data: result });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+export const sharedSchedule = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await sharedScheduleService(id);
+    return res.status(200).json({ status: 200, data: result });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+export const getInfoShareLink = async (req, res) => {
+  const { randomString } = req.params;
+
+  try {
+    const data = await getScheduleShareLinkService(randomString);
+    return res.status(200).json({ status: 200, data });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

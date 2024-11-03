@@ -1,7 +1,7 @@
 import express from "express";
 import userRouter from "./userRouter.js";
 import scheduleRouter from "./scheduleRouter.js";
-import appointmentRouter from "./AppointmentRouter.js";
+import appointmentRouter from "./appointmentRouter.js";
 
 const apiRouter = express.Router();
 apiRouter.use("/v1/apiUser", userRouter); //     USER_ROUTE

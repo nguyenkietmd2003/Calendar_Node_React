@@ -7,6 +7,8 @@ import LoginPage from "./pages/loginPage/loginpage";
 import RegisterPage from "./pages/registerPage/registerPage";
 import Test from "./pages/test";
 import Test2 from "./pages/test1";
+import SharedPage from "./pages/SharedPage/SharePage";
+import ProtectedRoute from "./util/protectedRoute.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -17,18 +19,21 @@ export const router = createBrowserRouter([
       { path: "/register", element: <RegisterPage /> },
     ],
   },
-  { path: "/calendar", element: <HomePage /> },
+  {
+    path: "/calendar",
+    element: (
+      <ProtectedRoute>
+        <HomePage />
+      </ProtectedRoute>
+    ),
+  },
   // Route lỗi
   {
     path: "*",
     element: <ErrorPage />,
   },
   {
-    path: "/test",
-    element: <Test />,
-  },
-  {
-    path: "/test1",
-    element: <Test2 />,
+    path: `/link-schedule/:randomString`,
+    element: <SharedPage />,
   },
 ]);

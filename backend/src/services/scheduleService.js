@@ -1,5 +1,4 @@
 import { sequelize } from "../config/database.js";
-import crypto from "crypto";
 import { Op } from "sequelize";
 import initModels from "../models/init-models.js";
 
@@ -112,8 +111,9 @@ export const createScheduleService = async (data) => {
   }
 };
 
-export const updateScheduleService = async (id, data) => {
-  const { user_id, start_time, end_time } = data;
+export const updateScheduleService = async (idSchedule, data) => {
+  const { user_id, start_time, end_time, title } = data;
+  console.log(idSchedule);
 
   // Kiểm tra thời gian bắt đầu và kết thúc
   if (new Date(start_time) >= new Date(end_time)) {
@@ -123,7 +123,7 @@ export const updateScheduleService = async (id, data) => {
   try {
     // 1. Tìm lịch cần cập nhật
     const checkSchedule = await model.WorkSchedule.findOne({
-      where: { id },
+      where: { id: idSchedule },
     });
 
     if (!checkSchedule) {
@@ -134,7 +134,7 @@ export const updateScheduleService = async (id, data) => {
     const conflictingSchedules = await model.WorkSchedule.findAll({
       where: {
         user_id: user_id,
-        id: { [Op.ne]: id }, // Loại trừ lịch hiện tại khỏi kết quả tìm kiếm
+        id: { [Op.ne]: idSchedule }, // Loại trừ lịch hiện tại khỏi kết quả tìm kiếm
         [Op.or]: [
           {
             start_time: {
@@ -183,9 +183,6 @@ export const deleteScheduleService = async (id) => {
     }
 
     // Tìm tất cả các đặt chỗ liên quan đến lịch làm việc này
-    const bookings = await model.Booking.findOne({
-      where: { work_schedule_id: id },
-    });
 
     const notification = await model.Notification.findOne({
       where: {
@@ -194,16 +191,10 @@ export const deleteScheduleService = async (id) => {
     });
 
     // Nếu không có đặt chỗ, hãy xóa lịch làm việc
-    if (!bookings && !notification) {
+    if (!notification) {
       const deleteSchedule = await checkSchedule.destroy();
       return { message: "Schedule deleted successfully", data: deleteSchedule };
     }
-
-    // Nếu có đặt chỗ hoặc thông báo, xóa chúng trước
-    if (bookings) {
-      await bookings.destroy();
-    }
-
     if (notification) {
       await notification.destroy();
     }
@@ -216,6 +207,8 @@ export const deleteScheduleService = async (id) => {
   }
 };
 
+import crypto from "crypto";
+
 export const sharedScheduleService = async (id) => {
   try {
     const existingLink = await model.PublicLink.findOne({
@@ -224,9 +217,9 @@ export const sharedScheduleService = async (id) => {
     if (existingLink) {
       return { message: existingLink.link };
     }
-    const domain = "https://myapp.com";
-    const path = "schedule";
-    const randomString = crypto.randomInt(5).toString("hex");
+    const domain = "http://localhost:5173";
+    const path = "link-schedule";
+    const randomString = crypto.randomBytes(5).toString("hex");
     const generateLink = `${domain}/${path}/${randomString}`;
     console.log(generateLink);
     const newLink = await model.PublicLink.create({
@@ -234,6 +227,31 @@ export const sharedScheduleService = async (id) => {
       link: generateLink,
     });
     return { message: "Schedule shared successfully", data: newLink };
+  } catch (error) {
+    throw error;
+  }
+};
+export const getScheduleShareLinkService = async (randomString) => {
+  try {
+    // Tạo URL từ `randomString` và tìm trong bảng `PublicLink`
+    const publicLink = await model.PublicLink.findOne({
+      where: { link: `http://localhost:5173/link-schedule/${randomString}` },
+    });
+
+    if (!publicLink) {
+      return { message: "Liên kết không hợp lệ hoặc đã hết hạn." };
+    }
+
+    // Tìm lịch dựa trên `user_id` từ liên kết chia sẻ
+    const schedule = await model.WorkSchedule.findAll({
+      where: { user_id: publicLink.user_id },
+    });
+
+    if (!schedule) {
+      return { message: "Không tìm thấy lịch." };
+    }
+
+    return { schedule };
   } catch (error) {
     throw error;
   }

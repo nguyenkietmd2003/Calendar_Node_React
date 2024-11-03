@@ -1,0 +1,413 @@
+import { useEffect, useState } from "react";
+import { booking, getInfoByLink, getScheduleById } from "../../util/api";
+import { useParams } from "react-router-dom";
+import "../test1.css";
+import "../test2.css";
+
+const APage = () => {
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [endTimeOptions, setEndTimeOptions] = useState([]);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    startTime: "",
+    endTime: "",
+    content: "",
+  });
+  const [userID, setUserID] = useState(0);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  // State cho chế độ hiển thị
+  const [isAppointmentMode, setIsAppointmentMode] = useState(false);
+  const [isSuccessNotificationVisible, setIsSuccessNotificationVisible] =
+    useState(false);
+
+  //
+
+  //////
+  const [apiSchedules, setApiSchedules] = useState([]);
+  const [bookedSchedules, setBookedSchedules] = useState([]);
+  const { randomString } = useParams();
+  useEffect(() => {
+    const fecthData = async () => {
+      try {
+        const data = await getInfoByLink(randomString);
+        setApiSchedules(data?.data?.schedule);
+        console.log(data?.data?.schedule);
+        console.log("id", data?.data?.schedule[0].user_id);
+        setUserID(data?.data?.schedule[0].user_id);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fecthData();
+  }, []);
+  const goToPreviousMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear((prevYear) => prevYear - 1);
+    } else {
+      setCurrentMonth((prevMonth) => prevMonth - 1);
+    }
+  };
+
+  const gotoNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear((prevYear) => prevYear + 1);
+    } else {
+      setCurrentMonth((prevMonth) => prevMonth + 1);
+    }
+  };
+  const handleDateClick = (date) => {
+    setSelectedDate(date);
+    setIsFormVisible(true);
+  };
+  const handleScheduleClick = (schedule) => {
+    setSelectedSchedule(schedule); // Lưu thông tin lịch trình vào state
+    console.log(schedule);
+    setIsModalVisible(true); // Hiển thị modal
+  };
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    if (name === "startTime") {
+    }
+  };
+  const daysInMonth = (month, year) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const renderCalendar = () => {
+    const daysOfWeek = ["CN", "TH 2", "TH 3", "TH 4", "TH 5", "TH 6", "TH 7"];
+    const totalDays = daysInMonth(currentMonth, currentYear);
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const startDay = firstDayOfMonth.getDay();
+    const calendarDays = [];
+
+    // Render days of the week at the top
+    calendarDays.push(
+      ...daysOfWeek.map((day, index) => (
+        <div key={`day-${index}`} className="day header-day">
+          {day}
+        </div>
+      ))
+    );
+
+    for (let i = startDay; i > 0; i--) {
+      const lastMonthDate = new Date(currentYear, currentMonth, 0);
+      calendarDays.push(
+        <div key={`empty-${i}`} className="day empty">
+          {`${lastMonthDate.getDate() - i + 1}/${lastMonthDate.getMonth()}`}
+        </div>
+      );
+    }
+
+    // Add the actual days of the month
+    for (let i = 1; i <= totalDays; i++) {
+      const currentDate = new Date(currentYear, currentMonth, i);
+      calendarDays.push(
+        <div
+          key={currentDate.toISOString()}
+          className="day"
+          onClick={() => handleDateClick(currentDate)}
+        >
+          {currentDate.getDate()}
+          {renderSchedules(currentDate)}
+        </div>
+      );
+    }
+
+    const remainingDays = (7 - ((totalDays + startDay) % 7)) % 7;
+    for (let i = 1; i <= remainingDays; i++) {
+      const nextMonthDate = new Date(currentYear, currentMonth + 1, i);
+      const day = nextMonthDate.getDate(); // Ngày trong tháng kế tiếp
+      const month = nextMonthDate.getMonth() + 1; // Tháng kế tiếp (tăng 1 do getMonth() trả về từ 0-11)
+
+      calendarDays.push(
+        <div key={`next-month-${i}`} className="day empty">
+          {`${day} thg ${month}`}
+        </div>
+      );
+    }
+
+    return calendarDays;
+  };
+  const resetForm = () => {
+    setFormData({
+      startTime: "",
+      endTime: "",
+      name: "",
+      email: "",
+      content: "",
+    });
+    setIsFormVisible(false);
+  };
+  const populateTimeOptions = () => {
+    const times = [];
+    for (let hour = 0; hour < 24; hour++) {
+      const period = hour < 12 ? "AM" : "PM";
+      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+      const minutes = ["00", "30"];
+
+      minutes.forEach((minute) => {
+        const timeOption = `${displayHour}:${minute} ${period}`;
+        times.push(timeOption);
+      });
+    }
+    return times;
+  };
+
+  const timeOptions = populateTimeOptions();
+
+  const updateEndTimeOptions = (selectedStartTime) => {
+    const startIndex = timeOptions.findIndex(
+      (time) => time === selectedStartTime
+    );
+
+    const availableEndTimes = timeOptions.filter(
+      (time, index) => index > startIndex
+    );
+
+    setEndTimeOptions(availableEndTimes);
+
+    setFormData((prevData) => ({
+      ...prevData,
+      endTime: "", // Reset endTime to an empty string
+    }));
+
+    console.log("Available End Times:", availableEndTimes);
+  };
+
+  const convertDate = (dateString) => {
+    const date = new Date(dateString);
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const convertTime = (time12h) => {
+    const regex = /(\d{1,2}):(\d{2})\s?(AM|PM)/i;
+    const match = time12h.trim().match(regex);
+
+    if (match) {
+      let hours = parseInt(match[1], 10);
+      const minutes = match[2];
+      const period = match[3].toUpperCase();
+
+      if (period === "PM" && hours !== 12) {
+        hours += 12;
+      } else if (period === "AM" && hours === 12) {
+        hours = 0;
+      }
+
+      const time24h = `${hours.toString().padStart(2, "0")}:${minutes}:00`;
+      return time24h;
+    } else {
+      console.log("Loi Convert time");
+    }
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const date = convertDate(selectedDate);
+    const startTime = convertTime(formData.startTime);
+    const endTime = convertTime(formData.endTime);
+    const newSchedule = {
+      user_id: userID, // Lấy user_id từ state
+      guest_name: formData.name,
+      guest_email: formData.email,
+      start_time: `${date}T${startTime}`,
+      end_time: `${date}T${endTime}`,
+      content: formData.content,
+    };
+    try {
+      const result = await booking(newSchedule);
+      console.log("Data trước khi call API booking ", newSchedule);
+      console.log(result);
+      if (result.status === 200) {
+        setIsSuccessNotificationVisible(true);
+        resetForm();
+      } else {
+        console.log("Error creating Schedule");
+      }
+    } catch (error) {
+      console.error("Lỗi khi tạo lịch làm việc:", error);
+    }
+    resetForm();
+    setIsFormVisible(false);
+  };
+  const renderSchedules = (date) => {
+    // Ngày hiện tại theo định dạng địa phương
+    const dateString = date.toLocaleDateString();
+
+    // Kiểm tra xem apiSchedules có phải là một mảng không
+    if (!Array.isArray(apiSchedules)) {
+      return <div className=""></div>;
+    }
+
+    // Lọc lịch trình theo ngày
+    const daySchedules = apiSchedules.filter((schedule) => {
+      const scheduleDate = new Date(schedule.start_time).toLocaleDateString(); // Chuyển đổi ngày từ lịch trình
+      return scheduleDate === dateString; // So sánh ngày
+    });
+
+    // Kiểm tra nếu không có lịch trình nào trong ngày
+    if (daySchedules.length === 0) {
+      return <div className=""></div>;
+    }
+
+    // Chọn tối đa 2 lịch trình để hiển thị
+    const displaySchedules = daySchedules.slice(0, 2);
+    const remainingCount = daySchedules.length - displaySchedules.length; // Tính số lịch trình còn lại
+
+    return (
+      <div>
+        {displaySchedules.map((schedule, index) => (
+          <div
+            className="schedule"
+            key={index}
+            onClick={(e) => {
+              e.stopPropagation(); // Ngăn chặn sự kiện click từ propagating lên thẻ cha
+              handleScheduleClick(schedule); // Gọi hàm xử lý sự kiện click
+            }}
+          >
+            {schedule.title}
+          </div>
+        ))}
+        {remainingCount > 0 && (
+          <div className="schedule">{`Còn ${remainingCount} lịch khác`}</div>
+        )}
+      </div>
+    );
+  };
+  return (
+    <div className="calendar">
+      <div className="header">
+        <button className="month-button previous" onClick={goToPreviousMonth}>
+          &#60;
+        </button>
+        <h1> {`Tháng ${currentMonth + 1}, ${currentYear}`}</h1>
+        <button className="month-button next" onClick={gotoNextMonth}>
+          &#62;
+        </button>
+        <button
+          className="appointment border w-[110px] h-[30px] rounded-2xl mr-[55px]"
+          onClick={() => setIsAppointmentMode(true)}
+        >
+          Lịch Hẹn
+        </button>
+      </div>
+      <div className="grid">{renderCalendar()}</div>
+      {isFormVisible && (
+        <div className="form-overlay">
+          <form className="schedule-form" onSubmit={handleSubmit}>
+            <div className="close-form" onClick={() => resetForm()}>
+              ICON CLOSE
+            </div>
+            <div className="form-input">
+              <label className="title-input">
+                Tên của bạn
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </label>
+              <label className="title-input">
+                Email
+                <input
+                  type="text"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </label>
+
+              <div className="time-input">
+                <select
+                  id="startTime"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={(e) => {
+                    const selectedStartTime = e.target.value;
+                    setFormData((prevData) => ({
+                      ...prevData,
+                      startTime: selectedStartTime,
+                      endTime: "", // Reset endTime khi thay đổi startTime
+                    }));
+                    updateEndTimeOptions(selectedStartTime);
+                  }}
+                  required
+                >
+                  <option value="">-- Chọn giờ bắt đầu --</option>
+                  {timeOptions.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  id="endTime"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={(e) => {
+                    const selectedEndTime = e.target.value;
+                    setFormData((prevData) => ({
+                      ...prevData,
+                      endTime: selectedEndTime,
+                    }));
+                  }}
+                  required={!!formData.startTime}
+                  disabled={!formData.startTime} // Chỉ cho phép chọn khi có giá trị startTime
+                >
+                  <option value="">-- Chọn giờ kết thúc --</option>
+                  {endTimeOptions.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+                <label className="title-input">
+                  Tên của bạn
+                  <input
+                    type="text"
+                    name="content"
+                    value={formData.content}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </label>
+              </div>
+            </div>
+            <button className="button-form">OK</button>
+          </form>
+        </div>
+      )}
+      {isSuccessNotificationVisible && (
+        <div className="notification-success">
+          <div className="notification-success-content">
+            <p className="text-green-700">Bạn đã đặt lịch thành công</p>
+            <p className="text-green-700">Chờ phê duyệt nhé!</p>
+            <button onClick={() => setIsSuccessNotificationVisible(false)}>
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+export default APage;

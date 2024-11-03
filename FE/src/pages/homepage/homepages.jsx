@@ -1,18 +1,40 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import "../test1.css";
 import "../test2.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBell, faCalendar, faL } from "@fortawesome/free-solid-svg-icons";
 import {
+  faBell,
+  faCalendar,
+  faL,
+  faSquareShareNodes,
+} from "@fortawesome/free-solid-svg-icons";
+import {
+  acceptBooking,
   createSchedule,
   deleteSchedule,
+  getBooking,
   getScheduleById,
+  rejectBooking,
+  shareLink,
+  updateSchedule,
 } from "../../util/api";
+import { AuthContext } from "../../context/wrapContext";
 
 const HomePage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [endTimeOptions, setEndTimeOptions] = useState([]);
+  const [formDataEdit, setFormDataEdit] = useState({
+    id: 0,
+    updateTitle: "",
+    updateStartTime: "",
+    updateEndTime: "",
+    updatePriority: "",
+    updateNotification_time: false,
+  });
+  const [formShareLink, setFormShareLink] = useState({
+    link: "",
+  });
   const [formData, setFormData] = useState({
     title: "",
     startTime: "",
@@ -22,8 +44,11 @@ const HomePage = () => {
   });
   const [selectedDate, setSelectedDate] = useState(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isFormEdit, setIsFormEdit] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isModalBooking, setIsModalBooking] = useState(false);
+  const [selectedBookings, setSelectedBookings] = useState(null);
 
   // State cho thông báo
   const [isNotificationsVisible, setIsNotificationsVisible] = useState(false);
@@ -38,27 +63,46 @@ const HomePage = () => {
   //
 
   const [apiSchedules, setApiSchedules] = useState([]);
-
   useEffect(() => {
+    const getInfo = localStorage.getItem("info");
+    const user = JSON.parse(getInfo);
+
     const fetchSchedules = async () => {
       try {
-        const getInfo = localStorage.getItem("info");
-        const user = JSON.parse(getInfo);
-        const response = await getScheduleById(user.data.user.id);
-        // Kiểm tra response.message trước khi thiết lập state
-        setApiSchedules(
-          Array.isArray(response.message) ? response.message : []
-        );
-        console.log(response.message);
+        const response = await getScheduleById(user?.data?.user?.id);
+        const schedules = Array.isArray(response.message)
+          ? response.message
+          : [];
+        return schedules.map((schedule) => ({ ...schedule, type: "schedule" })); // Gắn thêm type 'schedule'
       } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu từ API:", error);
+        console.error("Lỗi khi lấy dữ liệu từ API (schedules):", error);
+        return []; // Trả về mảng rỗng nếu có lỗi
       }
     };
 
-    fetchSchedules();
-  }, []);
+    const fetchBooking = async () => {
+      try {
+        const response = await getBooking(user?.data?.user?.id);
+        const bookings = Array.isArray(response.message)
+          ? response.message
+          : [];
+        return bookings.map((booking) => ({ ...booking, type: "booking" })); // Gắn thêm type 'booking'
+      } catch (error) {
+        console.error("Lỗi khi lấy dữ liệu từ API (bookings):", error);
+        return []; // Trả về mảng rỗng nếu có lỗi
+      }
+    };
 
-  //
+    const fetchAllData = async () => {
+      const schedules = await fetchSchedules();
+      const bookings = await fetchBooking();
+      const combinedData = [...schedules, ...bookings]; // Kết hợp dữ liệu từ cả hai
+      console.log(combinedData);
+      setApiSchedules(combinedData); // Cập nhật state với dữ liệu đã kết hợp
+    };
+
+    fetchAllData();
+  }, []);
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
@@ -67,48 +111,22 @@ const HomePage = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, type, checked, value } = e.target;
-    const newValue = type === "checkbox" ? checked : value; // Kiểm tra loại input
-    setFormData((prev) => ({ ...prev, [name]: newValue }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const date = convertDate(selectedDate);
-    const startTime = convertTime(formData.startTime);
-    const endTime = convertTime(formData.endTime);
-    const user_id = JSON.parse(localStorage.getItem("info")).data.user.id;
-    const newSchedule = {
-      user_id: user_id, // Lấy user_id từ localStorage
-      title: formData.title,
-      start_time: `${date}T${startTime}`,
-      end_time: `${date}T${endTime}`,
-      priority: formData.priority || "low",
-      notification_time: formData.notification_time,
-    };
-    console.log(newSchedule);
-    try {
-      const result = await createSchedule(newSchedule);
-      console.log("Data trước khi call API Create New Schedule", newSchedule);
-      console.log(result);
-      if (result.status === 200) {
-        setApiSchedules((prevSchedules) => {
-          if (Array.isArray(prevSchedules)) {
-            return [...prevSchedules, { ...newSchedule }];
-          } else {
-            console.error("prevSchedules is not an array", prevSchedules);
-            return [{ ...newSchedule }]; // Hoặc một giá trị mặc định khác
-          }
-        });
-        resetForm();
-      } else {
-        console.log("Error creating Schedule");
-      }
-    } catch (error) {
-      console.error("Lỗi khi tạo lịch làm việc:", error);
+    const { name, value, type, checked } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    if (name === "startTime") {
     }
-
-    setIsFormVisible(false);
+  };
+  const handleUpdateInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormDataEdit((prevData) => ({
+      ...prevData,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    if (name === "startTime") {
+    }
   };
 
   const resetForm = () => {
@@ -119,45 +137,53 @@ const HomePage = () => {
       priority: "",
       notification_time: false,
     });
+    setFormDataEdit({
+      updateTitle: "",
+      updateStartTime: "",
+      updateEndTime: "",
+      updatePriority: "",
+      updateNotification_time: false,
+    });
+    setIsFormEdit(false);
     setIsFormVisible(false);
   };
-
   const renderSchedules = (date) => {
-    // Ngày hiện tại theo định dạng địa phương
     const dateString = date.toLocaleDateString();
 
-    // Kiểm tra xem apiSchedules có phải là một mảng không
     if (!Array.isArray(apiSchedules)) {
       return <div className=""></div>;
     }
 
-    // Lọc lịch trình theo ngày
     const daySchedules = apiSchedules.filter((schedule) => {
-      const scheduleDate = new Date(schedule.start_time).toLocaleDateString(); // Chuyển đổi ngày từ lịch trình
-      return scheduleDate === dateString; // So sánh ngày
+      const scheduleDate = new Date(schedule.start_time).toLocaleDateString();
+      return scheduleDate === dateString;
     });
 
-    // Kiểm tra nếu không có lịch trình nào trong ngày
     if (daySchedules.length === 0) {
       return <div className=""></div>;
     }
 
-    // Chọn tối đa 2 lịch trình để hiển thị
     const displaySchedules = daySchedules.slice(0, 2);
-    const remainingCount = daySchedules.length - displaySchedules.length; // Tính số lịch trình còn lại
+    const remainingCount = daySchedules.length - displaySchedules.length;
 
     return (
       <div>
         {displaySchedules.map((schedule, index) => (
           <div
-            className="schedule"
+            className={`schedule ${
+              schedule.type === "booking"
+                ? schedule.status === "approved"
+                  ? "approved bg-red-600" // Lớp cho booking đã được chấp nhận
+                  : "pending bg-red-900" // Lớp cho booking đang chờ
+                : ""
+            }`}
             key={index}
             onClick={(e) => {
-              e.stopPropagation(); // Ngăn chặn sự kiện click từ propagating lên thẻ cha
-              handleScheduleClick(schedule); // Gọi hàm xử lý sự kiện click
+              e.stopPropagation();
+              handleScheduleClick(schedule);
             }}
           >
-            {schedule.title}
+            {schedule.type === "booking" ? schedule.content : schedule.title}
           </div>
         ))}
         {remainingCount > 0 && (
@@ -167,11 +193,73 @@ const HomePage = () => {
     );
   };
 
-  // Hàm xử lý sự kiện click
+  // const renderSchedules = (date) => {
+  //   // Ngày hiện tại theo định dạng địa phương
+  //   const dateString = date.toLocaleDateString();
+
+  //   // Kiểm tra xem apiSchedules có phải là một mảng không
+  //   if (!Array.isArray(apiSchedules)) {
+  //     return <div className=""></div>;
+  //   }
+
+  //   // Lọc lịch trình theo ngày
+  //   const daySchedules = apiSchedules.filter((schedule) => {
+  //     const scheduleDate = new Date(schedule.start_time).toLocaleDateString(); // Chuyển đổi ngày từ lịch trình
+  //     return scheduleDate === dateString; // So sánh ngày
+  //   });
+
+  //   // Kiểm tra nếu không có lịch trình nào trong ngày
+  //   if (daySchedules.length === 0) {
+  //     return <div className=""></div>;
+  //   }
+
+  //   // Chọn tối đa 2 lịch trình để hiển thị
+  //   const displaySchedules = daySchedules.slice(0, 2);
+  //   const remainingCount = daySchedules.length - displaySchedules.length; // Tính số lịch trình còn lại
+
+  //   return (
+  //     <div>
+  //       {displaySchedules.map((schedule, index) => (
+  //         <div
+  //           className={`schedule ${
+  //             schedule.type === "booking" ? "booking" : ""
+  //           }`} // Thêm lớp bg-yellow nếu là lịch booking
+  //           key={index}
+  //           onClick={(e) => {
+  //             e.stopPropagation(); // Ngăn chặn sự kiện click từ propagating lên thẻ cha
+  //             handleScheduleClick(schedule); // Gọi hàm xử lý sự kiện click
+  //           }}
+  //         >
+  //           {schedule.type === "booking" ? schedule.content : schedule.title}{" "}
+  //           {/* Hiển thị content nếu là booking, title nếu là schedule */}
+  //         </div>
+  //       ))}
+  //       {remainingCount > 0 && (
+  //         <div className="schedule">{`Còn ${remainingCount} lịch khác`}</div>
+  //       )}
+  //     </div>
+  //   );
+  // };
+
   const handleScheduleClick = (schedule) => {
-    console.log("Lịch trình đã chọn:", schedule);
-    setSelectedSchedule(schedule); // Lưu thông tin lịch trình vào state
-    setIsModalVisible(true); // Hiển thị modal
+    if (schedule.type === "booking") {
+      console.log("Thông tin booking:", schedule);
+      setSelectedBookings(schedule);
+      setIsModalBooking(true);
+
+      // Nếu booking là pending hoặc approved, bạn có thể thêm logic ở đây nếu cần
+      if (schedule.status === "pending") {
+        console.log("Booking đang chờ phê duyệt.");
+        // Thêm logic cụ thể cho trạng thái pending nếu cần
+      } else if (schedule.status === "approved") {
+        console.log("Booking đã được phê duyệt.");
+        // Thêm logic cụ thể cho trạng thái approved nếu cần
+      }
+    } else if (schedule.type === "schedule") {
+      console.log("Thông tin schedule:", schedule);
+      setSelectedSchedule(schedule);
+      setIsModalVisible(true);
+    }
   };
 
   const daysInMonth = (month, year) => {
@@ -256,22 +344,23 @@ const HomePage = () => {
   const toggleNotifications = () => {
     setIsNotificationsVisible((prev) => !prev);
   };
+
   const handleEdit = (schedule) => {
-    setFormData({
-      title: schedule.title,
-      startTime: "10:00 AM",
-      endTime: "11:00 PM",
-      priority: schedule.priority,
-      notification_time: schedule.notification_time,
+    const start_timee = convertTo12HourFormat(schedule.start_time);
+    const end_timee = convertTo12HourFormat(schedule.end_time);
+    console.log(schedule.id);
+    console.log(start_timee, end_timee, "check starttime endTime");
+    setFormDataEdit({
+      id: schedule.id,
+      updateTitle: schedule.title,
+      updateStartTime: start_timee,
+      updateEndTime: end_timee || "", //
+      updatePriority: schedule.priority,
+      updateNotification_time: schedule.notification_time,
     });
-    console.log("Updated formData:", {
-      title: schedule.title,
-      startTime: "12:00 AM",
-      endTime: "11:00 PM",
-      priority: schedule.priority,
-      notification_time: schedule.notification_time,
-    });
-    setIsFormVisible(true);
+
+    updateEndTimeOptions(start_timee);
+    setIsFormEdit(true);
     setIsModalVisible(false);
   };
 
@@ -281,7 +370,7 @@ const HomePage = () => {
       console.log(data);
       if (data.status === 200) {
         setApiSchedules((prevSchedules) => {
-          if (Array.isArray(prevSchedules)) {
+          if (prevSchedules) {
             return prevSchedules.filter((schedule) => schedule.id !== id);
           } else {
             console.error("prevSchedules is not an array", prevSchedules);
@@ -321,24 +410,23 @@ const HomePage = () => {
 
   const timeOptions = populateTimeOptions();
 
-  // Cập nhật tùy chọn giờ kết thúc dựa trên giờ bắt đầu
   const updateEndTimeOptions = (selectedStartTime) => {
     const startIndex = timeOptions.findIndex(
       (time) => time === selectedStartTime
     );
 
-    // Lọc các tùy chọn thời gian kết thúc có sẵn
     const availableEndTimes = timeOptions.filter(
       (time, index) => index > startIndex
     );
 
     setEndTimeOptions(availableEndTimes);
 
-    // Đặt lại endTime trong formData
     setFormData((prevData) => ({
       ...prevData,
-      endTime: "",
+      endTime: "", // Reset endTime to an empty string
     }));
+
+    console.log("Available End Times:", availableEndTimes);
   };
 
   const convertTime = (time12h) => {
@@ -371,6 +459,153 @@ const HomePage = () => {
 
     return `${year}-${month}-${day}`;
   };
+  const convertTo12HourFormat = (isoString) => {
+    const date = new Date(isoString);
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+
+    hours = hours % 12 || 12; // Chuyển sang định dạng 12 giờ
+
+    return `${hours}:${minutes} ${ampm}`;
+  };
+
+  const handleShareLink = async () => {
+    const user = JSON.parse(localStorage.getItem("info"));
+    console.log(user);
+    const userID = user?.data?.user?.id;
+    console.log(userID);
+    try {
+      const getLink = await shareLink(userID);
+      console.log(getLink);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const date = convertDate(selectedDate);
+    const startTime = convertTime(formData.startTime);
+    const endTime = convertTime(formData.endTime);
+    const user_id = JSON.parse(localStorage.getItem("info")).data.user.id;
+    const newSchedule = {
+      user_id: user_id, // Lấy user_id từ localStorage
+      title: formData.title,
+      start_time: `${date}T${startTime}`,
+      end_time: `${date}T${endTime}`,
+      priority: formData.priority || "low",
+      notification_time: formData.notification_time,
+    };
+    console.log(newSchedule);
+    try {
+      const result = await createSchedule(newSchedule);
+      console.log("Data trước khi call API Create New Schedule", newSchedule);
+      console.log(result);
+      if (result.status === 200) {
+        setApiSchedules((prevSchedules) => {
+          if (Array.isArray(prevSchedules)) {
+            return [...prevSchedules, { ...newSchedule }];
+          } else {
+            console.error("prevSchedules is not an array", prevSchedules);
+            return [{ ...newSchedule }]; // Hoặc một giá trị mặc định khác
+          }
+        });
+        resetForm();
+      } else {
+        console.log("Error creating Schedule");
+      }
+    } catch (error) {
+      console.error("Lỗi khi tạo lịch làm việc:", error);
+    }
+
+    setIsFormVisible(false);
+  };
+
+  const handleSumitUpdate = async (e) => {
+    e.preventDefault();
+    const date = convertDate(selectedSchedule.start_time);
+
+    const startTime = convertTime(formDataEdit.updateStartTime);
+    const endTime = convertTime(formDataEdit.updateEndTime);
+    const user_id = JSON.parse(localStorage.getItem("info")).data.user.id;
+    const id = formDataEdit.id;
+    console.log(date);
+    const updatedSchedule = {
+      id: formDataEdit.id,
+      user_id: user_id, // Lấy user_id từ localStorage
+      title: formDataEdit.updateTitle,
+      start_time: `${date}T${startTime}`,
+      end_time: `${date}T${endTime}`,
+      priority: formDataEdit.updatePriority || "low",
+      notification_time: formDataEdit.updateNotification_time,
+    };
+
+    console.log(updatedSchedule);
+
+    try {
+      const result = await updateSchedule(id, updatedSchedule);
+      console.log("Data trước khi call API Update Schedule", updatedSchedule);
+      console.log(result);
+
+      if (result.status === 200) {
+        setApiSchedules((prevSchedules) => {
+          if (Array.isArray(prevSchedules)) {
+            return prevSchedules.map((schedule) =>
+              schedule.id === id
+                ? { ...schedule, ...updatedSchedule }
+                : schedule
+            );
+          } else {
+            console.error("prevSchedules is not an array", prevSchedules);
+          }
+        });
+        resetForm();
+      } else {
+        console.log("Error updating Schedule");
+      }
+    } catch (error) {
+      console.error("Lỗi khi cập nhật lịch làm việc:", error);
+    }
+
+    setIsFormVisible(false);
+  };
+  const handleRejectBooking = async (booking) => {
+    try {
+      const data = await rejectBooking(booking.id_booking);
+      console.log(data);
+      if (data.status === 200) {
+        console.log("ok");
+        setApiSchedules((prevSchedules) =>
+          prevSchedules.filter(
+            (item) => item.id !== booking.id || item.type !== "booking"
+          )
+        );
+      }
+      setIsModalBooking(false);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleAcceptBooking = async (booking) => {
+    try {
+      const data = await acceptBooking(booking.id_booking);
+      console.log(data);
+      if (data.status === 200) {
+        console.log("ok");
+        setApiSchedules((prevSchedules) =>
+          prevSchedules.map(
+            (item) =>
+              item.id === booking.id ? { ...item, status: "approved" } : item // Cập nhật booking
+          )
+        );
+
+        setIsModalBooking(false);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <div className="calendar">
       <div className="header">
@@ -402,6 +637,9 @@ const HomePage = () => {
         </button>
         <button onClick={() => setIsAppointmentMode(false)}>
           <FontAwesomeIcon icon={faCalendar} />
+        </button>
+        <button onClick={() => handleShareLink()}>
+          <FontAwesomeIcon icon={faSquareShareNodes} />
         </button>
       </div>
       <div className="grid">{renderCalendar()}</div>
@@ -441,6 +679,37 @@ const HomePage = () => {
           </div>
         </div>
       )}
+      {isModalBooking && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={() => setIsModalBooking(false)}>
+              &times;
+            </span>
+            {selectedBookings && (
+              <div>
+                <h2>{selectedBookings.guest_name}</h2>
+                <h2>{selectedBookings.guest_email}</h2>
+                <p>
+                  <strong>Thời gian bắt đầu:</strong>{" "}
+                  {new Date(selectedBookings.start_time).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Thời gian kết thúc:</strong>{" "}
+                  {new Date(selectedBookings.end_time).toLocaleString()}
+                </p>
+                <div>
+                  <button onClick={() => handleRejectBooking(selectedBookings)}>
+                    Từ Chối
+                  </button>
+                  <button onClick={() => handleAcceptBooking(selectedBookings)}>
+                    Xác nhận
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {isFormVisible && (
         <div className="form-overlay">
           <form className="schedule-form" onSubmit={handleSubmit}>
@@ -468,7 +737,7 @@ const HomePage = () => {
                     setFormData((prevData) => ({
                       ...prevData,
                       startTime: selectedStartTime,
-                      endTime: "", // Reset endTime when startTime changes
+                      endTime: "", // Reset endTime khi thay đổi startTime
                     }));
                     updateEndTimeOptions(selectedStartTime);
                   }}
@@ -494,7 +763,7 @@ const HomePage = () => {
                     }));
                   }}
                   required={!!formData.startTime}
-                  disabled={!formData.startTime}
+                  disabled={!formData.startTime} // Chỉ cho phép chọn khi có giá trị startTime
                 >
                   <option value="">-- Chọn giờ kết thúc --</option>
                   {endTimeOptions.map((time) => (
@@ -539,7 +808,6 @@ const HomePage = () => {
                   </label>
                 </div>
               </div>
-
               <label className="notification-checkbox">
                 <input
                   type="checkbox"
@@ -551,6 +819,122 @@ const HomePage = () => {
               </label>
             </div>
             <button className="button-form">OK</button>
+          </form>
+        </div>
+      )}
+      {/*  */}
+      {/*  */}
+      {/*  */}
+      {/*  */}
+      {isFormEdit && (
+        <div className="form-overlay">
+          <form className="schedule-form" onSubmit={handleSumitUpdate}>
+            <div className="close-form" onClick={() => resetForm()}>
+              ICON CLOSE
+            </div>
+            <div className="form-input">
+              <label className="title-input">
+                Tiêu đề
+                <input
+                  type="text"
+                  name="updateTitle"
+                  value={formDataEdit.updateTitle}
+                  onChange={handleUpdateInputChange}
+                  required
+                />
+              </label>
+              <div className="time-input">
+                <select
+                  id="updateStartTime"
+                  name="updateStartTime"
+                  value={formDataEdit.updateStartTime}
+                  onChange={(e) => {
+                    const selectedStartTime = e.target.value;
+                    setFormDataEdit((prevData) => ({
+                      ...prevData,
+                      updateStartTime: selectedStartTime,
+                      updateEndTimeo: "", // Reset endTime khi thay đổi startTime
+                    }));
+                    updateEndTimeOptions(selectedStartTime);
+                  }}
+                  required
+                >
+                  <option value="">-- Chọn giờ bắt đầu --</option>
+                  {timeOptions.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  id="updateEndTime"
+                  name="updateEndTime"
+                  value={formDataEdit.updateEndTime}
+                  onChange={(e) => {
+                    const selectedEndTime = e.target.value;
+                    setFormDataEdit((prevData) => ({
+                      ...prevData,
+                      updateEndTime: selectedEndTime,
+                    }));
+                  }}
+                  required={!!formDataEdit.updateStartTime}
+                  disabled={!formDataEdit.updateStartTime} // Chỉ cho phép chọn khi có giá trị startTime
+                >
+                  <option value="">-- Chọn giờ kết thúc --</option>
+                  {endTimeOptions.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="importance-level">
+                <label>Mức độ quan trọng</label>
+                <div className="importance-options">
+                  <label>
+                    <input
+                      type="radio"
+                      name="updatePriority"
+                      value="high"
+                      checked={formDataEdit.updatePriority === "high"}
+                      onChange={handleUpdateInputChange}
+                    />
+                    <span className="high">High</span>
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="updatePriority"
+                      value="medium"
+                      checked={formDataEdit.updatePriority === "medium"}
+                      onChange={handleUpdateInputChange}
+                    />
+                    <span className="medium">Medium</span>
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="updatePriority"
+                      value="low"
+                      checked={formDataEdit.updatePriority === "low"}
+                      onChange={handleUpdateInputChange}
+                    />
+                    <span className="low">Low</span>
+                  </label>
+                </div>
+              </div>
+              <label className="notification-checkbox">
+                <input
+                  type="checkbox"
+                  name="updateNotification_time"
+                  checked={formDataEdit.updateNotification_time}
+                  onChange={handleUpdateInputChange}
+                />
+                Nhận thông báo khi gần đến
+              </label>
+            </div>
+            <button className="button-form">Update</button>
           </form>
         </div>
       )}
