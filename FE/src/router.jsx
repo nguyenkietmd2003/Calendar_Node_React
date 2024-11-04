@@ -5,8 +5,6 @@ import HomePage from "./pages/homepage/homepages"; // Đảm bảo tên file và
 import ErrorPage from "./pages/errorpage/ErrorPage"; // Đảm bảo tên file và đường dẫn đúng
 import LoginPage from "./pages/loginPage/loginpage";
 import RegisterPage from "./pages/registerPage/registerPage";
-import Test from "./pages/test";
-import Test2 from "./pages/test1";
 import SharedPage from "./pages/SharedPage/SharePage";
 import ProtectedRoute from "./util/protectedRoute.jsx";
 

@@ -112,7 +112,7 @@ export const createScheduleService = async (data) => {
 };
 
 export const updateScheduleService = async (idSchedule, data) => {
-  const { user_id, start_time, end_time, title } = data;
+  const { user_id, start_time, end_time, title, priority } = data;
   console.log(idSchedule);
 
   // Kiểm tra thời gian bắt đầu và kết thúc

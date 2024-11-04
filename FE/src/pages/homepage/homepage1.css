@@ -1,5 +1,5 @@
 .schedule {
-  background-color: #28a745;
+  background-color: #f03838;
   color: #fff;
   padding: 5px;
   border-radius: 4px;
@@ -12,24 +12,6 @@
   height: 30px;
 }
 
-/* Notification Dropdown */
-.notification-button {
-  position: relative;
-  margin-right: 55px;
-}
-
-.notification-dropdown {
-  position: fixed;
-  width: 1000px;
-  height: 500px;
-  background-color: rgb(224, 224, 236);
-  top: 120px;
-  left: auto;
-  right: 0;
-  z-index: 1000;
-}
-
-/* Form Overlay */
 .form-overlay {
   position: fixed;
   top: 0;
@@ -40,6 +22,35 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
+}
+
+/* Close Button */
+.schedule-form {
+  background: #fff;
+  width: 520px;
+  height: 681px;
+  border-radius: 10px;
+  /* padding: 20px; */
+}
+
+/* Importance Level */
+.importance-level {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.importance-options {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-checkbox {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color: #333;
 }
 
 /* Close Button */
@@ -57,16 +68,6 @@
   font-size: 20px;
 }
 
-/* Schedule Form */
-.schedule-form {
-  background: #fff;
-  height: 618px;
-  width: 520px;
-  max-width: 100%;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
 .form-input {
   padding-left: 32px;
   padding-right: 43px;
@@ -76,7 +77,6 @@
 
 .form-input label {
   display: flex;
-  flex-direction: column;
   font-weight: bold;
   color: #333;
   margin-bottom: 10px;
@@ -84,7 +84,7 @@
 
 /* Title Input */
 .title-input {
-  font-size: 25px;
+  font-size: 20px;
 }
 
 .title-input input {
@@ -93,44 +93,11 @@
   height: 80px;
   padding: 0 10px;
   font-size: 16px;
-  margin-top: 5px;
   width: 445px;
-}
-
-/* Time Range */
-.time-input {
-  margin-top: 26px; /* Fixed typo from '26p x' to '26px' */
 }
 
 .time-input label {
   font-size: 25px;
-}
-
-.time-range {
-  display: flex;
-  align-items: center;
-  font-weight: bold;
-  font-size: 25px;
-}
-
-.time-range input[type="text"] {
-  margin-left: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  height: 80px;
-  width: 100px;
-  padding: 0 5px;
-  font-size: 16px;
-}
-
-.time-range span {
-  margin: 0 10px;
-  font-size: 40px;
-}
-
-/* Importance Level */
-.importance-level {
-  margin-top: 15px;
 }
 
 .high {
@@ -151,13 +118,12 @@
   padding: 10px 20px;
   font-size: 16px;
   font-weight: bold;
-  color: #fff;
-  background-color: #007bff;
   border: none;
+  color: #3c6fcd;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
 }
+*/
 
 /* Additional Button Styles */
 .month-button {
@@ -174,10 +140,12 @@
 .previous {
   margin-left: 366px;
   margin-right: 50px;
+  font-size: 40px;
 }
 
 .next {
   margin-left: 50px;
+  font-size: 40px;
   margin-right: 105px;
 }
 .notification-success {
@@ -203,8 +171,8 @@
   text-align: center;
 }
 .pending {
-  background-color: #007bff;
+  background-color: #fbe660;
 }
 .approved {
-  background-color: #007bff;
+  background-color: #5ac420;
 }

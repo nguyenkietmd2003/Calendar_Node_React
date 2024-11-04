@@ -19,7 +19,7 @@ export const bookAppointment = async (req, res) => {
   try {
     const result = await bookAppointmentService(data);
     if (result.ER === 1) {
-      return res.status(400).json(result);
+      return res.status(400).json({ status: 400, data: result });
     }
     return res.status(200).json({ status: 200, data: result });
   } catch (error) {

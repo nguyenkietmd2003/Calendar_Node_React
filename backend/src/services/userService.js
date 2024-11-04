@@ -43,3 +43,12 @@ export const registerService = async (name, password, email) => {
     throw error;
   }
 };
+export const getUserInfoService = async (user_id) => {
+  try {
+    const user = await model.User.findByPk(user_id);
+    if (!user) throw new Error("User not found");
+    return { data: user };
+  } catch (error) {
+    throw error;
+  }
+};

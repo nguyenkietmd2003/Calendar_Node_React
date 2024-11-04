@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { booking, getInfoByLink, getScheduleById } from "../../util/api";
 import { useParams } from "react-router-dom";
-import "../test1.css";
-import "../test2.css";
+import "../homepage/homepage1.css";
+import "../homepage/homepage2.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleXmark } from "@fortawesome/free-solid-svg-icons";
 
-const APage = () => {
+const SharePage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [endTimeOptions, setEndTimeOptions] = useState([]);
@@ -45,6 +47,7 @@ const APage = () => {
     };
     fecthData();
   }, []);
+
   const goToPreviousMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
@@ -68,7 +71,6 @@ const APage = () => {
   };
   const handleScheduleClick = (schedule) => {
     setSelectedSchedule(schedule); // Lưu thông tin lịch trình vào state
-    console.log(schedule);
     setIsModalVisible(true); // Hiển thị modal
   };
   const handleInputChange = (e) => {
@@ -237,6 +239,11 @@ const APage = () => {
         setIsSuccessNotificationVisible(true);
         resetForm();
       } else {
+        if (result.status === 400) {
+          alert(
+            "Đặt lịch không thành công, trùng thời gian bận của khách hàng"
+          );
+        }
         console.log("Error creating Schedule");
       }
     } catch (error) {
@@ -311,11 +318,14 @@ const APage = () => {
         <div className="form-overlay">
           <form className="schedule-form" onSubmit={handleSubmit}>
             <div className="close-form" onClick={() => resetForm()}>
-              ICON CLOSE
+              <FontAwesomeIcon
+                icon={faCircleXmark}
+                style={{ fontSize: "30px" }}
+              />
             </div>
             <div className="form-input">
+              <div className="font-bold text-xl">Tên của bạn</div>
               <label className="title-input">
-                Tên của bạn
                 <input
                   type="text"
                   name="name"
@@ -324,8 +334,9 @@ const APage = () => {
                   required
                 />
               </label>
+              <div className="font-bold text-xl">Email</div>
+
               <label className="title-input">
-                Email
                 <input
                   type="text"
                   name="email"
@@ -334,8 +345,8 @@ const APage = () => {
                   required
                 />
               </label>
-
-              <div className="time-input">
+              <div className="font-bold text-xl">Thời Gian</div>
+              <div className="time-input mb-5">
                 <select
                   id="startTime"
                   name="startTime"
@@ -380,34 +391,63 @@ const APage = () => {
                     </option>
                   ))}
                 </select>
-                <label className="title-input">
-                  Tên của bạn
-                  <input
-                    type="text"
-                    name="content"
-                    value={formData.content}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </label>
               </div>
+              <div className="font-bold text-xl"> Nội dung</div>
+              <label className="title-input">
+                <input
+                  type="text"
+                  name="content"
+                  value={formData.content}
+                  onChange={handleInputChange}
+                  required
+                />
+              </label>
             </div>
-            <button className="button-form">OK</button>
+            <div className="flex justify-end">
+              <button className="button-form">Gửi</button>
+            </div>
           </form>
         </div>
       )}
       {isSuccessNotificationVisible && (
         <div className="notification-success">
           <div className="notification-success-content">
-            <p className="text-green-700">Bạn đã đặt lịch thành công</p>
-            <p className="text-green-700">Chờ phê duyệt nhé!</p>
+            <p>Bạn đã đặt lịch thành công</p>
+            <p>Chờ phê duyệt nhé!</p>
             <button onClick={() => setIsSuccessNotificationVisible(false)}>
               OK
             </button>
           </div>
         </div>
       )}
+      {isModalVisible && (
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={() => setIsModalVisible(false)}>
+              &times;
+            </span>
+            {selectedSchedule && (
+              <div>
+                <p>
+                  <strong>Tiêu đề:</strong> {selectedSchedule.title}
+                </p>
+                <p>
+                  <strong>Thời gian bắt đầu:</strong>{" "}
+                  {new Date(selectedSchedule.start_time).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Thời gian kết thúc:</strong>{" "}
+                  {new Date(selectedSchedule.end_time).toLocaleString()}
+                </p>
+                <p>
+                  <strong>Ưu tiên:</strong> {selectedSchedule.priority}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-export default APage;
+export default SharePage;

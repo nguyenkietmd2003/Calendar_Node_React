@@ -1,12 +1,17 @@
 import { useContext, useEffect, useState } from "react";
-import "../test1.css";
-import "../test2.css";
+import "./homepage2.css";
+import "./homepage1.css";
+import "./form.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faArrowAltCircleDown,
+  faArrowAltCircleRight,
   faBell,
   faCalendar,
+  faCircleXmark,
   faL,
   faSquareShareNodes,
+  faUserFriends,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   acceptBooking,
@@ -19,8 +24,10 @@ import {
   updateSchedule,
 } from "../../util/api";
 import { AuthContext } from "../../context/wrapContext";
+import { useNavigate } from "react-router-dom";
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [endTimeOptions, setEndTimeOptions] = useState([]);
@@ -32,9 +39,8 @@ const HomePage = () => {
     updatePriority: "",
     updateNotification_time: false,
   });
-  const [formShareLink, setFormShareLink] = useState({
-    link: "",
-  });
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
+
   const [formData, setFormData] = useState({
     title: "",
     startTime: "",
@@ -42,23 +48,25 @@ const HomePage = () => {
     priority: "",
     notification_time: false,
   });
+  const [link, setLink] = useState("");
+  const [isShowLink, setIsShowLink] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isFormEdit, setIsFormEdit] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isModalBooking, setIsModalBooking] = useState(false);
+  const [isModalPending, setIsModalPending] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState(null);
 
   // State cho thông báo
-  const [isNotificationsVisible, setIsNotificationsVisible] = useState(false);
   const notifications = [
     "Thông báo 1: Bạn có một cuộc họp lúc 10h.",
     "Thông báo 2: Đừng quên nộp báo cáo vào cuối ngày.",
   ];
 
   // State cho chế độ hiển thị
-  const [isAppointmentMode, setIsAppointmentMode] = useState(false);
+  const [isAppointmentMode, setIsAppointmentMode] = useState(true);
 
   //
 
@@ -73,10 +81,10 @@ const HomePage = () => {
         const schedules = Array.isArray(response.message)
           ? response.message
           : [];
-        return schedules.map((schedule) => ({ ...schedule, type: "schedule" })); // Gắn thêm type 'schedule'
+        return schedules.map((schedule) => ({ ...schedule, type: "schedule" }));
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu từ API (schedules):", error);
-        return []; // Trả về mảng rỗng nếu có lỗi
+        return [];
       }
     };
 
@@ -86,28 +94,30 @@ const HomePage = () => {
         const bookings = Array.isArray(response.message)
           ? response.message
           : [];
-        return bookings.map((booking) => ({ ...booking, type: "booking" })); // Gắn thêm type 'booking'
+        return bookings.map((booking) => ({ ...booking, type: "booking" }));
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu từ API (bookings):", error);
-        return []; // Trả về mảng rỗng nếu có lỗi
+        return [];
       }
     };
 
     const fetchAllData = async () => {
       const schedules = await fetchSchedules();
       const bookings = await fetchBooking();
-      const combinedData = [...schedules, ...bookings]; // Kết hợp dữ liệu từ cả hai
+      const combinedData = [...schedules, ...bookings];
       console.log(combinedData);
-      setApiSchedules(combinedData); // Cập nhật state với dữ liệu đã kết hợp
+      setApiSchedules(combinedData);
     };
 
-    fetchAllData();
-  }, []);
+    if (isFirstLoad) {
+      fetchAllData(); // Chỉ gọi khi lần đầu tiên load
+      setIsFirstLoad(false); // Đánh dấu đã load lần đầu
+    }
+  }, [isFirstLoad]);
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
     setIsFormVisible(true);
-    console.log("B1 CHỌN DATE ===> Mở MODAL", date);
   };
 
   const handleInputChange = (e) => {
@@ -168,7 +178,7 @@ const HomePage = () => {
 
     return (
       <div>
-        {displaySchedules.map((schedule, index) => (
+        {displaySchedules.map((schedule) => (
           <div
             className={`schedule ${
               schedule.type === "booking"
@@ -177,7 +187,7 @@ const HomePage = () => {
                   : "pending bg-red-900" // Lớp cho booking đang chờ
                 : ""
             }`}
-            key={index}
+            key={schedule.id}
             onClick={(e) => {
               e.stopPropagation();
               handleScheduleClick(schedule);
@@ -193,67 +203,16 @@ const HomePage = () => {
     );
   };
 
-  // const renderSchedules = (date) => {
-  //   // Ngày hiện tại theo định dạng địa phương
-  //   const dateString = date.toLocaleDateString();
-
-  //   // Kiểm tra xem apiSchedules có phải là một mảng không
-  //   if (!Array.isArray(apiSchedules)) {
-  //     return <div className=""></div>;
-  //   }
-
-  //   // Lọc lịch trình theo ngày
-  //   const daySchedules = apiSchedules.filter((schedule) => {
-  //     const scheduleDate = new Date(schedule.start_time).toLocaleDateString(); // Chuyển đổi ngày từ lịch trình
-  //     return scheduleDate === dateString; // So sánh ngày
-  //   });
-
-  //   // Kiểm tra nếu không có lịch trình nào trong ngày
-  //   if (daySchedules.length === 0) {
-  //     return <div className=""></div>;
-  //   }
-
-  //   // Chọn tối đa 2 lịch trình để hiển thị
-  //   const displaySchedules = daySchedules.slice(0, 2);
-  //   const remainingCount = daySchedules.length - displaySchedules.length; // Tính số lịch trình còn lại
-
-  //   return (
-  //     <div>
-  //       {displaySchedules.map((schedule, index) => (
-  //         <div
-  //           className={`schedule ${
-  //             schedule.type === "booking" ? "booking" : ""
-  //           }`} // Thêm lớp bg-yellow nếu là lịch booking
-  //           key={index}
-  //           onClick={(e) => {
-  //             e.stopPropagation(); // Ngăn chặn sự kiện click từ propagating lên thẻ cha
-  //             handleScheduleClick(schedule); // Gọi hàm xử lý sự kiện click
-  //           }}
-  //         >
-  //           {schedule.type === "booking" ? schedule.content : schedule.title}{" "}
-  //           {/* Hiển thị content nếu là booking, title nếu là schedule */}
-  //         </div>
-  //       ))}
-  //       {remainingCount > 0 && (
-  //         <div className="schedule">{`Còn ${remainingCount} lịch khác`}</div>
-  //       )}
-  //     </div>
-  //   );
-  // };
-
   const handleScheduleClick = (schedule) => {
     if (schedule.type === "booking") {
       console.log("Thông tin booking:", schedule);
       setSelectedBookings(schedule);
-      setIsModalBooking(true);
 
       // Nếu booking là pending hoặc approved, bạn có thể thêm logic ở đây nếu cần
       if (schedule.status === "pending") {
-        console.log("Booking đang chờ phê duyệt.");
-        // Thêm logic cụ thể cho trạng thái pending nếu cần
+        setIsModalPending(true);
       } else if (schedule.status === "approved") {
-        console.log("Booking đã được phê duyệt.");
-        // Thêm logic cụ thể cho trạng thái approved nếu cần
+        setIsModalBooking(true);
       }
     } else if (schedule.type === "schedule") {
       console.log("Thông tin schedule:", schedule);
@@ -338,11 +297,6 @@ const HomePage = () => {
     } else {
       setCurrentMonth((prevMonth) => prevMonth + 1);
     }
-  };
-
-  // Hàm để chuyển đổi trạng thái hiển thị thông báo
-  const toggleNotifications = () => {
-    setIsNotificationsVisible((prev) => !prev);
   };
 
   const handleEdit = (schedule) => {
@@ -472,12 +426,12 @@ const HomePage = () => {
 
   const handleShareLink = async () => {
     const user = JSON.parse(localStorage.getItem("info"));
-    console.log(user);
     const userID = user?.data?.user?.id;
-    console.log(userID);
     try {
       const getLink = await shareLink(userID);
-      console.log(getLink);
+      console.log(getLink.data.message);
+      setLink(getLink.data.message);
+      setIsShowLink(true);
     } catch (error) {
       console.log(error);
     }
@@ -502,17 +456,20 @@ const HomePage = () => {
       console.log("Data trước khi call API Create New Schedule", newSchedule);
       console.log(result);
       if (result.status === 200) {
-        setApiSchedules((prevSchedules) => {
-          if (Array.isArray(prevSchedules)) {
-            return [...prevSchedules, { ...newSchedule }];
-          } else {
-            console.error("prevSchedules is not an array", prevSchedules);
-            return [{ ...newSchedule }]; // Hoặc một giá trị mặc định khác
-          }
-        });
+        // setApiSchedules((prevSchedules) => {
+        //   if (Array.isArray(prevSchedules)) {
+        //     return [...prevSchedules, { ...newSchedule }];
+        //   } else {
+        //     console.error("prevSchedules is not an array", prevSchedules);
+        //     return [{ ...newSchedule }]; // Hoặc một giá trị mặc định khác
+        //   }
+        // });
+        setIsFirstLoad(true);
         resetForm();
       } else {
-        console.log("Error creating Schedule");
+        if (result.status === 400) {
+          alert("Lịch đã tồn tại, vui lòng chọn lại thời gian");
+        } else console.log("Error creating Schedule");
       }
     } catch (error) {
       console.error("Lỗi khi tạo lịch làm việc:", error);
@@ -561,8 +518,11 @@ const HomePage = () => {
         });
         resetForm();
       } else {
-        console.log("Error updating Schedule");
+        if (result.status === 400) {
+          alert("Lịch đã tồn tại, vui lòng chọn lại thời gian");
+        } else console.log("Error updating Schedule");
       }
+      setIsFormEdit(false);
     } catch (error) {
       console.error("Lỗi khi cập nhật lịch làm việc:", error);
     }
@@ -575,13 +535,12 @@ const HomePage = () => {
       console.log(data);
       if (data.status === 200) {
         console.log("ok");
-        setApiSchedules((prevSchedules) =>
-          prevSchedules.filter(
-            (item) => item.id !== booking.id || item.type !== "booking"
-          )
-        );
+        // setApiSchedules((prevSchedules) =>
+        //   prevSchedules.filter((item) => item.id !== booking.id_booking)
+        // );
+        setIsFirstLoad(true);
       }
-      setIsModalBooking(false);
+      setIsModalPending(false);
     } catch (error) {
       console.log(error);
     }
@@ -593,17 +552,20 @@ const HomePage = () => {
       if (data.status === 200) {
         console.log("ok");
         setApiSchedules((prevSchedules) =>
-          prevSchedules.map(
-            (item) =>
-              item.id === booking.id ? { ...item, status: "approved" } : item // Cập nhật booking
+          prevSchedules.map((item) =>
+            item.id === booking.id ? { ...item, status: "approved" } : item
           )
         );
 
-        setIsModalBooking(false);
+        setIsModalPending(false);
       }
     } catch (error) {
       console.log(error);
     }
+  };
+  const logOut = () => {
+    localStorage.removeItem("info");
+    navigate("/");
   };
 
   return (
@@ -623,23 +585,24 @@ const HomePage = () => {
           Lịch Hẹn
         </button>
 
-        {isNotificationsVisible && (
-          <div className="notification-dropdown">
-            {notifications.map((notification, index) => (
-              <div key={index} className="notification-item">
-                {notification}
-              </div>
-            ))}
-          </div>
-        )}
-        <button className="notification-button" onClick={toggleNotifications}>
-          <FontAwesomeIcon icon={faBell} />
+        <button
+          className="mr-[55px]"
+          onClick={() => setIsAppointmentMode(false)}
+        >
+          <FontAwesomeIcon icon={faCalendar} style={{ fontSize: "25px" }} />
         </button>
-        <button onClick={() => setIsAppointmentMode(false)}>
-          <FontAwesomeIcon icon={faCalendar} />
+        <button className="" onClick={() => handleShareLink()}>
+          <FontAwesomeIcon
+            icon={faSquareShareNodes}
+            style={{ fontSize: "25px" }}
+          />
         </button>
-        <button onClick={() => handleShareLink()}>
-          <FontAwesomeIcon icon={faSquareShareNodes} />
+        <button className="ml-[55px] text-xl" onClick={() => logOut()}>
+          <FontAwesomeIcon
+            icon={faArrowAltCircleRight}
+            style={{ fontSize: "25px" }}
+          />{" "}
+          Logout
         </button>
       </div>
       <div className="grid">{renderCalendar()}</div>
@@ -651,9 +614,8 @@ const HomePage = () => {
             </span>
             {selectedSchedule && (
               <div>
-                <h2>{selectedSchedule.title}</h2>
                 <p>
-                  <strong>Mô tả:</strong> {selectedSchedule.description}
+                  <strong>Tiêu đề:</strong> {selectedSchedule.title}
                 </p>
                 <p>
                   <strong>Thời gian bắt đầu:</strong>{" "}
@@ -667,10 +629,16 @@ const HomePage = () => {
                   <strong>Ưu tiên:</strong> {selectedSchedule.priority}
                 </p>
                 <div>
-                  <button onClick={() => handleEdit(selectedSchedule)}>
+                  <button
+                    className="mr-5 rounded-md border-4 w-20"
+                    onClick={() => handleEdit(selectedSchedule)}
+                  >
                     Chỉnh sửa
                   </button>
-                  <button onClick={() => handleDelete(selectedSchedule.id)}>
+                  <button
+                    className="rounded-md border-4 w-20"
+                    onClick={() => handleDelete(selectedSchedule.id)}
+                  >
                     Xóa
                   </button>
                 </div>
@@ -679,30 +647,94 @@ const HomePage = () => {
           </div>
         </div>
       )}
+
       {isModalBooking && (
-        <div className="modal">
-          <div className="modal-content">
-            <span className="close" onClick={() => setIsModalBooking(false)}>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-2xl"
+              onClick={() => setIsModalBooking(false)}
+            >
               &times;
-            </span>
+            </button>
             {selectedBookings && (
-              <div>
-                <h2>{selectedBookings.guest_name}</h2>
-                <h2>{selectedBookings.guest_email}</h2>
-                <p>
-                  <strong>Thời gian bắt đầu:</strong>{" "}
-                  {new Date(selectedBookings.start_time).toLocaleString()}
-                </p>
-                <p>
-                  <strong>Thời gian kết thúc:</strong>{" "}
-                  {new Date(selectedBookings.end_time).toLocaleString()}
-                </p>
-                <div>
-                  <button onClick={() => handleRejectBooking(selectedBookings)}>
-                    Từ Chối
+              <div className="text-center space-y-4">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Thông tin cuộc hẹn
+                </h2>
+                <div className="text-left">
+                  <p className="text-lg">
+                    <span className="font-semibold">Tên khách hàng:</span>{" "}
+                    {selectedBookings.guest_name}
+                  </p>
+                  <p className="text-lg">
+                    <span className="font-semibold">Email:</span>{" "}
+                    {selectedBookings.guest_email}
+                  </p>
+                  <p className="text-lg">
+                    <span className="font-semibold">
+                      Thời gian bắt đầu cuộc hẹn:
+                    </span>{" "}
+                    {new Date(selectedBookings.start_time).toLocaleString()}
+                  </p>
+                  <p className="text-lg">
+                    <span className="font-semibold">
+                      Thời gian kết thúc cuộc hẹn:
+                    </span>{" "}
+                    {new Date(selectedBookings.end_time).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {isModalPending && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white w-96 p-6 rounded-lg shadow-lg relative">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl"
+              onClick={() => setIsModalPending(false)}
+            >
+              &times;
+            </button>
+            {selectedBookings && (
+              <div className="space-y-4">
+                <div className="text-left space-y-3">
+                  <p className="font-semibold text-lg">
+                    Tên khách: <span>{selectedBookings.guest_name}</span>
+                  </p>
+                  <p className="font-semibold text-lg">
+                    Email: <span>{selectedBookings.guest_email}</span>
+                  </p>
+                  <p className="font-semibold text-lg">
+                    Thời gian:{" "}
+                    <span>
+                      {new Date(selectedBookings.start_time).toLocaleString()} -{" "}
+                      {new Date(selectedBookings.end_time).toLocaleString()}
+                    </span>
+                  </p>
+                  <p className="font-semibold text-lg">
+                    Nội dung công việc:{" "}
+                    <span>
+                      {selectedBookings.content || "Không có nội dung"}
+                    </span>
+                  </p>
+                </div>
+                <div className="border-t border-gray-300 mt-4"></div>
+                <div className="flex justify-around mt-4">
+                  <button
+                    className="text-blue-500 font-semibold hover:underline"
+                    onClick={() => handleAcceptBooking(selectedBookings)}
+                  >
+                    Chấp nhận
                   </button>
-                  <button onClick={() => handleAcceptBooking(selectedBookings)}>
-                    Xác nhận
+                  <button
+                    className="text-black font-semibold hover:underline"
+                    onClick={() => handleRejectBooking(selectedBookings)}
+                  >
+                    Từ chối
                   </button>
                 </div>
               </div>
@@ -710,15 +742,19 @@ const HomePage = () => {
           </div>
         </div>
       )}
+
       {isFormVisible && (
         <div className="form-overlay">
           <form className="schedule-form" onSubmit={handleSubmit}>
             <div className="close-form" onClick={() => resetForm()}>
-              ICON CLOSE
+              <FontAwesomeIcon
+                icon={faCircleXmark}
+                style={{ fontSize: "30px" }}
+              />
             </div>
             <div className="form-input">
+              <div className="text-xl font-bold">Tiêu đề</div>
               <label className="title-input">
-                Tiêu đề
                 <input
                   type="text"
                   name="title"
@@ -727,7 +763,8 @@ const HomePage = () => {
                   required
                 />
               </label>
-              <div className="time-input">
+              <div className="text-xl font-bold mb-5">Thời Gian</div>
+              <div className="time-input mb-5">
                 <select
                   id="startTime"
                   name="startTime"
@@ -750,7 +787,6 @@ const HomePage = () => {
                     </option>
                   ))}
                 </select>
-
                 <select
                   id="endTime"
                   name="endTime"
@@ -774,7 +810,7 @@ const HomePage = () => {
                 </select>
               </div>
               <div className="importance-level">
-                <label>Mức độ quan trọng</label>
+                <label className="text-xl font-bold">Mức độ quan trọng</label>
                 <div className="importance-options">
                   <label>
                     <input
@@ -818,7 +854,9 @@ const HomePage = () => {
                 Nhận thông báo khi gần đến
               </label>
             </div>
-            <button className="button-form">OK</button>
+            <div className="flex justify-end">
+              <button className="button-form">OK</button>
+            </div>
           </form>
         </div>
       )}
@@ -830,11 +868,14 @@ const HomePage = () => {
         <div className="form-overlay">
           <form className="schedule-form" onSubmit={handleSumitUpdate}>
             <div className="close-form" onClick={() => resetForm()}>
-              ICON CLOSE
+              <FontAwesomeIcon
+                icon={faCircleXmark}
+                style={{ fontSize: "30px" }}
+              />
             </div>
             <div className="form-input">
+              <div className="font-bold text-xl">Tiêu đề</div>
               <label className="title-input">
-                Tiêu đề
                 <input
                   type="text"
                   name="updateTitle"
@@ -844,6 +885,7 @@ const HomePage = () => {
                 />
               </label>
               <div className="time-input">
+                <div className="text-xl font-bold mb-5">Thời Gian</div>
                 <select
                   id="updateStartTime"
                   name="updateStartTime"
@@ -890,7 +932,9 @@ const HomePage = () => {
                 </select>
               </div>
               <div className="importance-level">
-                <label>Mức độ quan trọng</label>
+                <label className="font-bold text-xl mt-5">
+                  Mức độ quan trọng
+                </label>
                 <div className="importance-options">
                   <label>
                     <input
@@ -931,11 +975,33 @@ const HomePage = () => {
                   checked={formDataEdit.updateNotification_time}
                   onChange={handleUpdateInputChange}
                 />
-                Nhận thông báo khi gần đến
+                <p>Nhận thông báo khi gần đến</p>
               </label>
             </div>
-            <button className="button-form">Update</button>
+            <div className="flex justify-end">
+              <button className="button-form font-bold text-xl">Update</button>
+            </div>
           </form>
+        </div>
+      )}
+      {isShowLink && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg relative w-80">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setIsShowLink(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-lg font-bold text-center mb-4">
+              Shared Link Calendar
+            </h2>
+            <p className="text-center mt-4 font-semibold border">
+              <a href={link} target="_blank" rel="noopener noreferrer">
+                {link}
+              </a>
+            </p>
+          </div>
         </div>
       )}
     </div>

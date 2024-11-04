@@ -18,3 +18,12 @@ export const register = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+export const getInfoUser = async (req, res) => {
+  const { user_id } = req.params;
+  try {
+    const result = await getUserInfoService(user_id);
+    return res.status(200).json({ status: 200, data: result });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

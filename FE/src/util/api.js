@@ -53,3 +53,7 @@ export const rejectBooking = (id) => {
   const URL_API = `/v1/apiAppointment/reject-booking/${id}`;
   return axios.post(URL_API);
 };
+export const getInfoUser = (user_id) => {
+  const URL_API = `/v1/apiUser/get-info/${user_id}`;
+  return axios.post(URL_API);
+};

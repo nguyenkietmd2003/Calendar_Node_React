@@ -38,6 +38,7 @@ export const bookAppointmentService = async (data) => {
       };
     }
     if (guest_name && guest_email) {
+      const user = await model.User.findByPk(user_id);
       const newBooking = await model.Booking.create({
         user_id,
         end_time,
@@ -47,6 +48,11 @@ export const bookAppointmentService = async (data) => {
         content,
         status: "pending",
       });
+      await sendEmail(
+        user.email,
+        "New Booking",
+        `Please visit the calendar for details: ${content}`
+      );
       return {
         message: newBooking,
       };
